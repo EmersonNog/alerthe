@@ -20,7 +20,8 @@ export default function ProtectedApp() {
       >
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/report" element={<ReportForm />} />
+          <Route path="/report" element={<ReportForm expanded={expanded} />} />
+
           <Route path="/map" element={<MapView />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />

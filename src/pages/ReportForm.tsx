@@ -1,42 +1,18 @@
 import { useState } from "react";
 import { db, auth } from "../services/firebase";
 import { addDoc, collection, Timestamp } from "firebase/firestore";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import { useAuthState } from "react-firebase-hooks/auth";
-import "leaflet/dist/leaflet.css";
 import toast from "react-hot-toast";
-import L from "leaflet";
+import MapModal from "../components/MapModal";
 
-import customMarker from "../assets/icons/dangerous.png";
-
-const modernIcon = new L.Icon({
-  iconUrl: customMarker,
-  iconSize: [40, 40],
-  iconAnchor: [20, 40],
-  popupAnchor: [0, -40],
-  shadowUrl: undefined,
-});
-
-function LocationPicker({
-  setLocation,
-}: {
-  setLocation: (coords: [number, number]) => void;
-}) {
-  useMapEvents({
-    click(e) {
-      setLocation([e.latlng.lat, e.latlng.lng]);
-    },
-  });
-  return null;
-}
-
-export default function ReportForm() {
+export default function ReportForm({ expanded }: { expanded: boolean }) {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("infraestrutura");
   const [anonymous, setAnonymous] = useState(true);
   const [contactNumber, setContactNumber] = useState("");
   const [location, setLocation] = useState<[number, number] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showMapModal, setShowMapModal] = useState(false);
   const [user] = useAuthState(auth);
 
   const categoryLabels: Record<string, string> = {
@@ -49,6 +25,11 @@ export default function ReportForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!location) {
+      toast.error("Por favor, selecione a localização no mapa.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -60,7 +41,7 @@ export default function ReportForm() {
         location,
         createdAt: Timestamp.now(),
         user: anonymous
-          ? null
+          ? { uid: user?.uid }
           : {
               name: user?.displayName || "",
               email: user?.email || "",
@@ -70,6 +51,7 @@ export default function ReportForm() {
 
       toast.success("Ocorrência registrada com sucesso!");
 
+      // Resetar o formulário
       setDescription("");
       setCategory("infraestrutura");
       setAnonymous(true);
@@ -122,6 +104,31 @@ export default function ReportForm() {
           />
         </div>
 
+        {/* Número de contato */}
+        <div className="flex flex-col gap-2">
+          <label className="text-lg font-medium text-gray-700">
+            Número de contato (opcional)
+          </label>
+          <input
+            type="tel"
+            value={contactNumber}
+            onChange={(e) => {
+              let raw = e.target.value.replace(/\D/g, "");
+              if (raw.length > 11) raw = raw.slice(0, 11);
+
+              let formatted = "";
+              if (raw.length >= 1) formatted += `(${raw.slice(0, 2)}`;
+              if (raw.length >= 3) formatted += `) ${raw[2]}`;
+              if (raw.length >= 4) formatted += ` ${raw.slice(3, 7)}`;
+              if (raw.length >= 8) formatted += `-${raw.slice(7, 11)}`;
+
+              setContactNumber(formatted);
+            }}
+            placeholder="(11) 9 9999-9999"
+            className="w-full p-3 text-gray-800 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/60 backdrop-blur-sm"
+          />
+        </div>
+
         {/* Anônimo */}
         <div className="flex items-center gap-3">
           <input
@@ -135,71 +142,44 @@ export default function ReportForm() {
           </label>
         </div>
 
-        {/* Número de contato */}
+        {/* Localização */}
         <div className="flex flex-col gap-2">
           <label className="text-lg font-medium text-gray-700">
-            Número de contato (opcional)
+            Localização do problema
           </label>
-          <input
-            type="tel"
-            value={contactNumber}
-            onChange={(e) => {
-              let raw = e.target.value.replace(/\D/g, "");
-
-              if (raw.length > 11) raw = raw.slice(0, 11);
-
-              let formatted = "";
-
-              if (raw.length >= 1) {
-                formatted += `(${raw.slice(0, 2)}`;
-              }
-              if (raw.length >= 3) {
-                formatted += `) ${raw[2]}`;
-              }
-              if (raw.length >= 4) {
-                formatted += ` ${raw.slice(3, 7)}`;
-              }
-              if (raw.length >= 8) {
-                formatted += `-${raw.slice(7, 11)}`;
-              }
-
-              setContactNumber(formatted);
-            }}
-            placeholder="(11) 9 9999-9999"
-            className="w-full p-3 text-gray-800 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/60 backdrop-blur-sm"
-          />
-        </div>
-
-        {/* Mapa */}
-        <div className="rounded-xl overflow-hidden border border-gray-300 shadow-sm">
-          <MapContainer
-            center={[-5.091944, -42.803056]}
-            zoom={13}
-            className="h-64 w-full"
+          <button
+            type="button"
+            onClick={() => setShowMapModal(true)}
+            className="px-5 py-3 w-fit rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-medium shadow-md hover:opacity-90 transition"
           >
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            <LocationPicker setLocation={setLocation} />
-            {location && <Marker position={location} icon={modernIcon} />}
-          </MapContainer>
+            📍 Onde fica o problema?
+          </button>
         </div>
 
-        {/* Botão */}
+        {/* Botão de envio */}
         <div className="flex justify-end">
           <button
             type="submit"
             disabled={loading}
-            className={`px-6 py-3 rounded-full text-white font-semibold tracking-wide shadow-md transition mb-4
-              ${
-                loading
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-gradient-to-r from-blue-600 to-cyan-500 hover:opacity-90"
-              }
-            `}
+            className={`px-6 py-3 rounded-full text-white font-semibold tracking-wide shadow-md transition mb-4 ${
+              loading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-gradient-to-r from-blue-600 to-cyan-500 hover:opacity-90"
+            }`}
           >
             {loading ? "Enviando..." : "Registrar Ocorrência"}
           </button>
         </div>
       </form>
+
+      {/* Modal de Mapa */}
+      <MapModal
+        isOpen={showMapModal}
+        onClose={() => setShowMapModal(false)}
+        location={location}
+        setLocation={setLocation}
+        expanded={expanded} // <-- nova prop
+      />
     </div>
   );
 }
