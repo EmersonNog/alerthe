@@ -11,11 +11,13 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconPlus,
+  IconDownload,
 } from "@tabler/icons-react";
 import { auth } from "../services/firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
-// import logo from "../assets/logo.png";
 import only_logo from "../assets/only_logo.png";
+import { gerarRelatorioPDF } from "./Report";
+import { useUserRole } from "../hook/useUserRole";
 
 export default function Sidebar({
   expanded,
@@ -27,6 +29,9 @@ export default function Sidebar({
   const [user] = useAuthState(auth);
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { role, loading } = useUserRole();
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [gerando, setGerando] = useState(false);
 
   const handleLogout = async () => {
     await auth.signOut();
@@ -35,7 +40,6 @@ export default function Sidebar({
 
   return (
     <>
-      {/* Botão hamburguer e nome da plataforma no mobile */}
       {!mobileOpen && (
         <div className="lg:hidden fixed top-4 left-4 z-9998 flex items-center gap-3">
           <button
@@ -45,7 +49,6 @@ export default function Sidebar({
             <IconMenu2 size={24} />
           </button>
 
-          {/* Texto forte e impactante */}
           <span
             className="text-3xl font-black tracking-tight leading-none font-[Righteous] bg-white px-3 py-1 rounded-t-xl border-b border-gray-300"
             style={{ boxShadow: "0 4px 4px -2px rgba(0, 0, 0, 0.1)" }}
@@ -56,7 +59,6 @@ export default function Sidebar({
         </div>
       )}
 
-      {/* Overlay escuro no mobile */}
       {mobileOpen && (
         <div
           className="fixed inset-0 bg-white/20 backdrop-blur-sm z-30 lg:hidden"
@@ -64,7 +66,6 @@ export default function Sidebar({
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={`
           z-9999 fixed top-0 left-0 z-40 h-screen bg-gray-900 text-white shadow-lg transition-transform duration-300 flex flex-col
@@ -73,7 +74,6 @@ export default function Sidebar({
           lg:translate-x-0
         `}
       >
-        {/* Cabeçalho com logo e botão */}
         <div
           className={`flex items-center px-4 py-4 border-b border-gray-800 ${
             expanded || mobileOpen ? "justify-between" : "justify-center"
@@ -121,7 +121,6 @@ export default function Sidebar({
           )}
         </div>
 
-        {/* Navegação */}
         <nav className="flex flex-col mt-4 space-y-2">
           <SidebarLink
             to="/"
@@ -172,33 +171,86 @@ export default function Sidebar({
           >
             Privacidade
           </SidebarLink>
+
+          {!loading && role === "admin" && (
+            <button
+              onClick={() => setShowConfirmModal(true)}
+              className={`flex items-center cursor-pointer ${
+                expanded || mobileOpen ? "justify-start" : "justify-center"
+              } gap-3 px-4 py-2 hover:bg-gray-800 transition text-gray-200 w-full`}
+            >
+              <IconDownload size={22} />
+              {(expanded || mobileOpen) && <span>Exportar Dados</span>}
+            </button>
+          )}
         </nav>
 
-        {/* Rodapé com usuário e logout */}
         <div className="mt-auto border-t border-gray-800 px-4 py-4 text-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <IconUser size={18} />
-            {(expanded || mobileOpen) && (
+          {(expanded || mobileOpen) && (
+            <div className="flex items-center gap-2 mb-2">
+              <IconUser size={18} />
               <div>
                 <p className="font-semibold">{user?.displayName}</p>
                 <p className="text-xs text-gray-300 break-all">{user?.email}</p>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 text-red-400 hover:text-red-600 transition"
+            className={`flex items-center w-full ${
+              expanded || mobileOpen
+                ? "justify-start gap-2 px-0"
+                : "justify-center"
+            } text-red-400 hover:text-red-600 transition cursor-pointer`}
           >
             <IconLogout size={18} />
             {(expanded || mobileOpen) && <span>Sair</span>}
           </button>
         </div>
       </aside>
+
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-lg p-6 shadow-xl w-[90%] max-w-md">
+            <h3 className="text-lg font-bold text-gray-800 mb-2">
+              Gerar Relatório Mensal
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Deseja gerar o relatório PDF com os dados deste mês?
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="px-4 py-2 text-sm rounded bg-gray-200 hover:bg-gray-300 text-gray-700"
+              >
+                Cancelar
+              </button>
+              <button
+                disabled={gerando}
+                onClick={async () => {
+                  setGerando(true);
+                  try {
+                    await gerarRelatorioPDF();
+                    setShowConfirmModal(false);
+                  } catch (error) {
+                    console.error("Erro ao gerar relatório:", error);
+                  } finally {
+                    setGerando(false);
+                  }
+                }}
+                className="px-4 py-2 text-sm rounded bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60"
+              >
+                {gerando ? "Gerando..." : "Confirmar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
 
-// Componente reutilizável para links
 function SidebarLink({
   to,
   icon,

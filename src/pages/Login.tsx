@@ -43,7 +43,7 @@ export default function Login() {
 
         <button
           onClick={handleLogin}
-          className="flex items-center justify-center w-full gap-3 px-4 py-3 bg-white border border-gray-300 rounded-lg shadow hover:shadow-lg hover:ring-2 hover:ring-blue-200 transition duration-200"
+          className="flex items-center justify-center w-full gap-3 px-4 py-3 cursor-pointer bg-white border border-gray-300 rounded-lg shadow hover:shadow-lg hover:ring-2 hover:ring-blue-200 transition duration-200"
         >
           <img
             src={googleLogo}

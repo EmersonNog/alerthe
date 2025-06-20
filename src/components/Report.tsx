@@ -3,7 +3,7 @@ import autoTable from "jspdf-autotable";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../services/firebase";
 import { generateTechnicalAnalysisAI } from "../services/geminiClient";
-import { LOGO_BASE64 } from "../assets/logoBase64"; // seu arquivo base64.ts exportando o logo
+import { only_logo } from "../assets/only_logo";
 
 interface jsPDFWithAutoTable extends jsPDF {
   lastAutoTable: {
@@ -75,7 +75,7 @@ export async function gerarRelatorioPDF() {
   doc.setFont("helvetica", "normal");
 
   // Cabeçalho com logo
-  doc.addImage(LOGO_BASE64, "PNG", 14, 10, 28, 28);
+  doc.addImage(only_logo, "PNG", 14, 8, 28, 32);
   doc.setFontSize(14);
   doc.setTextColor(40, 100, 70);
   const titulo = "ALERTHE – AÇÃO LOCAL DE ENGAJAMENTO E REGISTROS EM TERESINA";
@@ -108,9 +108,12 @@ export async function gerarRelatorioPDF() {
 
   // Resumo Executivo
   let posY = 50;
-  doc.setFontSize(10);
+  doc.setFontSize(12);
   doc.setTextColor(0);
-  doc.text("Resumo Executivo:", 14, posY);
+  doc.setFont("helvetica", "bold");
+  doc.text("1. Resumo Executivo", 14, posY);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
   const textoResumo = `Durante o mês de ${agora.toLocaleDateString("pt-BR", {
     month: "long",
   })} de ${ano}, foram registradas ${total} ocorrências urbanas no sistema ALERTHE, distribuídas em 5 categorias. Este relatório visa subsidiar os órgãos públicos e privados na priorização das demandas reportadas pela população.`;
@@ -119,9 +122,12 @@ export async function gerarRelatorioPDF() {
   posY += 12 + linhasResumo.length * 5;
 
   // Resumo por Categoria
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text("2. Resumo por Categoria", 14, posY - 5);
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.text("Resumo por Categoria:", 14, posY);
-  posY += 6;
+  posY += 2;
   categoriasBase.forEach((cat) => {
     const qtde = contagem[cat];
     const perc = total > 0 ? ((qtde / total) * 100).toFixed(1) : "0.0";
@@ -130,6 +136,11 @@ export async function gerarRelatorioPDF() {
   });
 
   // Tabela de Ocorrências
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text("3. Tabela de Ocorrências", 14, posY + 5);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
   const dadosTabela = ocorrenciasDoMes.map((oc, index) => [
     String(index + 1),
     oc.anonymous ? "Anônimo" : oc.user?.name ?? "-",
@@ -143,7 +154,7 @@ export async function gerarRelatorioPDF() {
   ]);
 
   autoTable(doc, {
-    startY: posY + 5,
+    startY: posY + 8,
     head: [
       [
         "ID",
@@ -165,8 +176,11 @@ export async function gerarRelatorioPDF() {
 
   // Análise Técnica
   const analiseY = doc.lastAutoTable.finalY + 10;
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text("4. Análise Técnica", 14, analiseY);
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.text("Análise Técnica:", 14, analiseY);
   const resumoIA = categoriasBase
     .map((cat) => `${cat}: ${contagem[cat]} ocorrência(s)`)
     .join("\n");

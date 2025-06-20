@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { collection, getCountFromServer } from "firebase/firestore";
 import { db } from "../services/firebase";
 import { Link } from "react-router-dom";
-import { gerarRelatorioPDF } from "../components/Report";
 
 export default function Home() {
   const [totalOcorrencias, setTotalOcorrencias] = useState<number | null>(null);
@@ -66,7 +65,6 @@ export default function Home() {
           </span>
         </div>
 
-        {/* Conscientização */}
         <div className="bg-yellow-50 border-l-4 border-yellow-400 p-5 rounded-xl shadow-md text-yellow-900 hover:shadow-lg transition">
           <h3 className="text-xl font-semibold mb-2">
             🔔 Uso Consciente da Plataforma
@@ -81,12 +79,6 @@ export default function Home() {
             essenciais para que o sistema funcione para todos.
           </p>
         </div>
-        <button
-          onClick={gerarRelatorioPDF}
-          className="ml-4 mt-4 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition"
-        >
-          Exportar relatório PDF do mês
-        </button>
       </div>
     </div>
   );
